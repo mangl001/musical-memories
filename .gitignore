@@ -1,2 +1,6 @@
 data
 figures
+.git
+.RData
+.Rhistory
+.Rproj.user
