@@ -1,0 +1,24 @@
+{
+    "id": "1EA28121",
+    "path": "~/Documents/RProject/A.Lamont/musical-memories/Analysis_Exp1.R",
+    "project_path": "Analysis_Exp1.R",
+    "type": "r_source",
+    "hash": "3627297104",
+    "contents": "",
+    "dirty": false,
+    "created": 1610356760375.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "cursorPosition": "268,31",
+        "scrollLine": "235"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1610356627,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1610356627,
+    "read_only": false,
+    "read_only_alternatives": []
+}
