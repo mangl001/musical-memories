@@ -1,6 +1,8 @@
-#Analysis paper: Exp2
-
-#required packages
+################################################################################
+# File:     Analysis Script for Experiment 2
+#
+# Author:   Manuel Anglada-Tort
+################################################################################
 library(tidyverse)
 library(party)
 library(caret)
@@ -12,11 +14,9 @@ library(lsmeans)
 library(readxl)
 
 set.seed(10)
+SIZE = 12
 
-###########
 # Functions
-##########
-
 lower_ci <- function(mean, se, n, conf_level = 0.95){
     lower_ci <- mean - qt(1 - ((1 - conf_level) / 2), n - 1) * se
 }
@@ -31,51 +31,43 @@ Make_figure_3a <- function(gam_output){
         labs(x="Year", y = "Effect of time on music recognition")+
         theme_bw() 
     ii= c(1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015)
-    Figure2a <- plot_data_gam + scale_x_continuous(breaks=ii) + 
+    figure <- plot_data_gam + scale_x_continuous(breaks=ii) + 
         theme(axis.text = element_text(size=12), axis.title=element_text(size=12),
-              axis.title.x = element_blank(),
-              panel.border = element_blank(),
-              axis.line = element_line(colour = "black"))
-    Figure2a
+              axis.title.x = element_blank())
+    figure
     
 }
 
 Make_Figure3b <- function(gam_output, name_variable){
     plot_gam <- getViz(gam_output)
-    Figure2b <- plot(sm(plot_gam,1)) +  
+    figure <- plot(sm(plot_gam,1)) +  
         l_ciPoly() + l_fitLine()  + l_fitContour(colors="blue")+
         ylab(paste0("Effect of time on ", name_variable)) + 
         ylim(-2.5,3.5) +
         theme_bw() 
     ii= c(1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015)
-    Figure2b_final <- Figure2b + scale_x_continuous(breaks=ii) + 
+    figure_final <- figure + scale_x_continuous(breaks=ii) + 
         theme(axis.text = element_text(size=12), axis.title=element_text(size=12),
-              axis.title.x = element_blank(),
-              panel.border = element_blank(),
-              axis.line = element_line(colour = "black"))
-    Figure2b_final
+              axis.title.x = element_blank())
+    figure_final
 }
 
-##############
+
 # Analysis - quantitative
-#############
-#data_exp2_long <- read_excel("data/exp2-long-all.xlsx") # load data
+data_exp2_long <- read_excel("data/exp2-long-all.xlsx") 
 data_exp2_long <- data_exp2_long[ ! (data_exp2_long$YearReleaseSong == "2015"), ]   # excluding 2015 to be consistent with exp1
 
-### 1.1 Recognition
+## Recognition
 Exp2_recognition <- data_exp2_long %>% filter( DV == "Recognition")
 Exp2_recognition %>% group_by(ResponseId) %>% tally()
 Exp2_recognition %>% group_by(Song) %>% tally()
-
-#GAM
-# Exp1_recognition_NoNAs = Exp1_recognition %>% drop_na(DV)
 Exp2_recognition$ResponseId = as.factor(Exp2_recognition$ResponseId)
 GAM.Exp2b = gam(as.numeric(Response) ~ s(as.numeric(YearReleaseSong)) + s(ResponseId, bs = "re"), data = Exp2_recognition,method="REML")
 plot(GAM.Exp2b)
 summary(GAM.Exp2b)
 coef(GAM.Exp2)
 gam.check(GAM.Exp2)
-# GAM.Exp2 = gam(as.numeric(Response) ~ s(as.numeric(YearReleaseSong)), data = Exp2_recognition,method="REML")
+# GAM.Exp2 = gam(as.numeric(Response) ~ s(as.numeric(YearReleaseSong)), data = Exp2_recognition,method="REML") # without re
 # plot(GAM.Exp2)
 # summary(GAM.Exp2)
 
@@ -83,7 +75,7 @@ Figure3a <- Make_figure_3a(GAM.Exp2b)
 ggsave("Exp2_GAM_figure3a.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
-#compare linear vs nonlinear models
+### Compare linear vs nonlinear models
 GAM.Exp2.linear <- gam(as.numeric(Response) ~ as.numeric(YearReleaseSong), data = Exp2_recognition)
 GAM.Exp2.nointercept <- gam(as.numeric(Response) ~ s(as.numeric(YearReleaseSong)), data = Exp2_recognition)
 summary(GAM.Exp2.linear)
@@ -97,7 +89,7 @@ summary(GAM.Exp2.nointercept)$r.sq  # adjusted R squared
 
 anova(GAM.Exp2,GAM.Exp2.linear,test="Chisq")
 
-#Individual differences
+### Individual differences
 GAM.Exp2_IDs = gam(
     as.numeric(Response)  ~ 
         s(as.numeric(AgeAtRelease)) + 
@@ -113,8 +105,8 @@ cor.AE
 cor.MT= cor.test(as.numeric(Exp2_recognition$Response), as.numeric(Exp2_recognition$MT), method="pearson")
 cor.MT
 
-#########
-#1.2 rating scales
+
+### Rating scales
 data_exp2_long$ResponseId = as.factor(data_exp2_long$ResponseId)
 Exp2_like <- data_exp2_long %>% filter( DV == "like")
 Exp2_quality <- data_exp2_long %>% filter( DV == "quality")
@@ -142,8 +134,7 @@ ggsave("Figure3d_vivid.pdf", width=12, height=10, units = c("cm"),
        dpi=300, device = "pdf")
 
 
-#1.3 Exploratory analysis: Model tree
-#SPIVACK APPROACH
+# Exploratory analysis
 mean_response <- Exp2_recognition %>%
     group_by(YearReleaseSong, Song) %>%
     summarize(total= sum(as.numeric(Response),na.rm=T),
@@ -151,8 +142,8 @@ mean_response <- Exp2_recognition %>%
               ssd= sd(as.numeric(Response),na.rm=T),
               scount=n()) 
 
-# library(caTools)
-# jpeg("Figure4a.jpeg", units="cm", width=12, height=10, res=300)
+library(caTools)
+jpeg("Figure4a.jpeg", units="cm", width=12, height=10, res=300)
 
 vari= ts(data = mean_response$smean, start = 1960 , end = 2014 , frequency = 3)
 k2=10
@@ -168,7 +159,7 @@ abline(v=c(1975,1992,2001), col=c("red", "red", "red"), lty=c(1,1,1), lwd=c(1, 1
 # insert ggplot code
 dev.off()
 
-#3. Analysis of groups
+## Analysis of groups
 data_exp2_long_timegroup <- mutate(data_exp2_long, 
                                   TimeGroup = ifelse(YearReleaseSong %in% 1960:1975, "1960-1975",
                                                 ifelse(YearReleaseSong %in% 1976:1992, "1976-1992",
@@ -216,7 +207,7 @@ summary.lm(ANOVA.exp2.TimeGroups.vivid)
 posthoc.exp1 <- glht(ANOVA.exp2.TimeGroups.vivid, lsm(pairwise ~ TimeGroup))
 summary(posthoc.exp1, test=adjusted("holm"))
 
-# figure time groups
+# Figure for time groups
 Sum_TimeGroup <- Exp2_Long_Final.timegroups.Recognition %>%
     group_by(YearReleaseSong,Song,TimeGroup) %>%
     summarize(total= sum(as.numeric(Response),na.rm=T),
@@ -253,13 +244,11 @@ Figure4b_final <- Figure4b +
           axis.title.x = element_blank(),
           legend.title = element_blank(),
           legend.text = element_text(size = 12),
-          legend.position = "none",
-          panel.border = element_blank(),
-          axis.line = element_line(colour = "black"))
+          legend.position = "none")
 ggsave("Figure4b_exp2.pdf", width=20, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
-#Fgiure4c: run mean and run sd
+# Fgiure4c (optional): run mean and run sd
 data_figure4c <- Exp2_Long_Final.timegroups.Recognition %>%   
     group_by(YearReleaseSong, Song) %>%
     dplyr::summarise(mean= mean(Response, na.rm = TRUE))
@@ -313,10 +302,9 @@ Figure4c_exp2 <- plot_grid(p1, p2, labels = c("",""))
 ggsave("Figure4c_exp2.pdf", width=12, height=7, units = c("cm"),
        dpi=300, device = "pdf")
 
-##############
+
 # Analysis - qualitative: content analysis
-############# 
-# exp2_content_analysis <- read_excel("data/exp2-content-analysis.xlsx") #load data
+exp2_content_analysis <- read_excel("data/exp2-content-analysis.xlsx") 
 
 exp2_content_analysis <- mutate(exp2_content_analysis, 
                                           TimeGroup = ifelse(YEAR %in% 1960:1975, "1960-75",
@@ -374,7 +362,7 @@ ggsave("Figure2b_content_exp2.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
 #not grouping
-# exp2_content_analysis_year <- read_excel("data/exp2-content-analysis.xlsx") # load data
+exp2_content_analysis_year <- read_excel("data/exp2-content-analysis.xlsx") 
 
 exp2_content_analysis_year <- exp2_content_analysis_year[c(2,4:7)]
 data_exp2_content_long <- exp2_content_analysis_year %>% gather(condition,count,Parents:Media)
@@ -414,3 +402,4 @@ Figure5_year_final = Figure5_year +
 ggsave("Figure2year_content_exp2.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
+# end

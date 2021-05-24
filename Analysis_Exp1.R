@@ -1,6 +1,8 @@
-#Analysis paper: Exp1
-
-# required packages
+################################################################################
+# File:     Analysis Script for Experiment 1
+#
+# Author:   Manuel Anglada-Tort
+################################################################################
 library(tidyverse)
 library(multcomp)
 library(lsmeans)
@@ -12,10 +14,9 @@ library(readxl)
 library(viridis)
 
 set.seed(10)
+SIZE = 12
 
-###########
 # Functions
-##########
 lower_ci <- function(mean, se, n, conf_level = 0.95){
     lower_ci <- mean - qt(1 - ((1 - conf_level) / 2), n - 1) * se
 }
@@ -23,8 +24,8 @@ upper_ci <- function(mean, se, n, conf_level = 0.95){
     upper_ci <- mean + qt(1 - ((1 - conf_level) / 2), n - 1) * se
 }
 
-Make_figure1a <- function(data_Figure1a){
-    Exp1_recognition_summary <-Exp1_recognition %>%
+Make_figure1a <- function(data){
+    data_sum <-data %>%
         group_by(Half_Decade) %>%
         summarize(total= sum(as.numeric(DV),na.rm=T),
                   smean= mean(as.numeric(DV),na.rm=T),
@@ -34,7 +35,7 @@ Make_figure1a <- function(data_Figure1a){
                lower_ci = lower_ci(smean, se, scount),
                upper_ci = upper_ci(smean, se, scount))
     
-    Exp1_recognition_figure1 <- ggplot(Exp1_recognition_summary, aes(x=as.factor(Half_Decade), y=smean, group=1))+ 
+    figure <- ggplot(data_sum, aes(x=as.factor(Half_Decade), y=smean, group=1))+ 
         geom_errorbar(aes(ymin=lower_ci, ymax=upper_ci), width=.1, 
                       position=position_dodge(0.005)) +
         geom_line() +
@@ -42,44 +43,42 @@ Make_figure1a <- function(data_Figure1a){
         ylim(0,1)+
         labs(x="Time", y = "Music recognition")+
         theme_bw()
-    Exp1_recognition_figure1_final <- Exp1_recognition_figure1 +  theme(axis.text=element_text(size=12), axis.title=element_text(size=12),
-                                                                        axis.title.x = element_blank(),
-                                                                        panel.border = element_blank(),
-                                                                        axis.line = element_line(colour = "black"))
+    final_figure <- figure +  theme(axis.text=element_text(size=12), axis.title=element_text(size=12),
+                                                                        axis.title.x = element_blank())
+    final_figure
 }
 
-Make_figure1b <- function(gam_model){
-    plot_data <- getViz(GAM.Exp1)
+Make_figure1b <- function(data){
+    plot_data <- getViz(data)
     plot_data_gam <- plot(sm(plot_data,1)) +  
         l_ciPoly() + l_fitLine()  + 
         labs(x="Year", y = "Effect of time on music recognition")+
         theme_bw() 
-    Figure1b <- plot_data_gam + scale_x_discrete(name ="Time", 
+    figure <- plot_data_gam + scale_x_discrete(name ="Time", 
                                               limits=c("1960","1965","1970",
                                                        "1975","1980","1985",
                                                        "1990","1995","2000","2005","2010")) + 
         theme(axis.text=element_text(size=12), axis.title=element_text(size=12),
-              axis.title.x = element_blank(),panel.border = element_blank(),axis.line = element_line(colour = "black"))
+              axis.title.x = element_blank())
     
-    Figure1b
+    figure
 }
 
-Make_figure1c <- function(data_figure1c, name_variable){
-    plot_data <- getViz(data_figure1c)
+Make_figure1c <- function(data, name_variable){
+    plot_data <- getViz(data)
     plot_data2 <- plot(sm(plot_data,1)) +  
         l_ciPoly() + l_fitLine()  + l_fitContour(colors="blue")+
         ylab(paste0("Effect of time on ", name_variable)) + 
         ylim(-3.5,3.5) +
         theme_bw() 
-    Figure1b <- plot_data2 + scale_x_discrete(name ="Time", 
+    figure <- plot_data2 + scale_x_discrete(name ="Time", 
                                               limits=c("1960","1965","1970",
                                                        "1975","1980","1985",
                                                        "1990","1995","2000","2005","2010")) + 
         theme(axis.text=element_text(size=12), axis.title=element_text(size=1),
-              axis.title.x = element_blank(), panel.border = element_blank(),
-              axis.line = element_line(colour = "black"))
+              axis.title.x = element_blank())
     
-    Figure1b
+    figure
 }
 
 prepare_data_exp1 <- function(data_exp1_wide){
@@ -98,13 +97,12 @@ prepare_data_exp1 <- function(data_exp1_wide){
     data_exp1_separate
 }
 
-##############
+
 # Analysis - quantitative
-#############
-# data_exp1_wide <- read_excel("data/exp1-wide-all.xlsx") #load dataset 
+data_exp1_wide <- read_excel("data/exp1-wide-all.xlsx") 
 data_exp1_long <- prepare_data_exp1(data_exp1_wide)
 
-#1.1 Replication analsyis using multiple t-tests
+## Replication analsyis using multiple t-tests
 Exp1_recognition <- data_exp1_long %>% filter( Rating == "recognised") 
 Exp1_recognition$DV <- (Exp1_recognition$Response/100)
 
@@ -123,29 +121,10 @@ Exp1_recognition_ttest_data <-Exp1_recognition %>%
 pairwise.t.test(as.numeric(Exp1_recognition_ttest_data$smean), as.factor(Exp1_recognition_ttest_data$Half_Decade),
                 p.adjust.method = "BH", paired=TRUE) # Krumanshal replication
 
-#calculate the t-test manullly by dividing the dataset...
-Exp1_recognition_ttest_data_198085 <-Exp1_recognition %>%
-    group_by(Participantno, Half_Decade) %>%
-    filter( Half_Decade == "1980/84"| Half_Decade == "1985/89") %>%
-    summarize(total= sum(as.numeric(DV),na.rm=T),
-              smean= mean(as.numeric(DV),na.rm=T),
-              ssd= sd(as.numeric(DV),na.rm=T),
-              scount=n())  
-Exp1_recognition_ttest_data_198590 <-Exp1_recognition %>%
-    group_by(Participantno, Half_Decade) %>%
-    filter( Half_Decade == "1985/89"| Half_Decade == "1990/94") %>%
-    summarize(total= sum(as.numeric(DV),na.rm=T),
-              smean= mean(as.numeric(DV),na.rm=T),
-              ssd= sd(as.numeric(DV),na.rm=T),
-              scount=n())  
-comparison1 <- t.test(as.numeric(smean) ~ as.factor(Half_Decade), data = Exp1_recognition_ttest_data_198085, paired = TRUE)
-comparison1
-comaprison2 <- t.test(as.numeric(smean) ~ as.factor(Half_Decade), data = Exp1_recognition_ttest_data_198590, paired = TRUE)
-comaprison2
-
-#1.2 GAMs
+## GAM
 Exp1_recognition_NoNAs = Exp1_recognition %>% drop_na(DV)
-GAM.Exp1 = gam(as.numeric(DV)  ~ s(as.numeric(Half_Decade)) + s(ResponseId, bs = "re"), data = Exp1_recognition_NoNAs, method="REML")
+GAM.Exp1 = gam(as.numeric(Response)  ~ s(as.numeric(Half_Decade)) + s(ResponseId, bs = "re"), 
+               data = Exp1_recognition_NoNAs, method="REML")
 plot(GAM.Exp1)
 summary(GAM.Exp1)
 coef(GAM.Exp1)
@@ -155,7 +134,8 @@ Figure1b <- Make_figure1b(GAM.Exp1x)
 ggsave("Exp1_GAM_figure1b.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
-#Individual differences
+### Individual differences
+#### Musical Training (MT) and Active Engagement (AE)
 GAM.Exp1_IDs = gam(
     as.numeric(Response)  ~ 
         s(as.numeric(Half_Decade)) + 
@@ -171,7 +151,7 @@ cor.AE
 cor.MT= cor.test(as.numeric(Exp1_recognition$Response), as.numeric(Exp1_recognition$MT), method="pearson")
 cor.MT
 
-#Comparing models
+### Comparing models
 GAM.Exp1.linear <- gam(as.numeric(DV) ~ as.numeric(Half_Decade), data=Exp1_recognition)
 GAM.Exp1.nointerept <- gam(as.numeric(DV) ~ s(as.numeric(Half_Decade)), data=Exp1_recognition)
 summary(GAM.Exp1.linear)
@@ -185,7 +165,7 @@ summary(GAM.Exp1.nointerept)$r.sq  # adjusted R squared
 
 anova(GAM.Exp1.linear,GAM.Exp1.nointerept,  test="Chisq")
 
-#1.3 Rating scales
+### Rating scales
 Exp1_like <- data_exp1_long %>% filter( Rating == "like")
 Exp1_quality <- data_exp1_long %>% filter( Rating == "quality")
 Exp1_vivid <- data_exp1_long %>% filter( Rating == "vivid")
@@ -211,9 +191,8 @@ Figure1c_vivid <- Make_figure1c(GAM.vivid, "vividness")
 ggsave("Exp1_Figure1c_vivid.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
 
-##############
+
 # Analysis - qualitative: content analysis
-#############
 data_exp1_content_pre <- read_excel("data/exp1-content-analysis.xlsx") 
 data_exp1_content_pre$Half_Decade = as.factor(data_exp1_content_pre$Half_Decade)
 prepare_content_data <- function(data) {
@@ -246,8 +225,6 @@ data_exp1_content_summar<- data_exp1_content %>%
            lower_ci = lower_ci(smean, se, scount),
            upper_ci = upper_ci(smean, se, scount))
 
-SIZE = 12
-
 Figure2b <- ggplot(data=data_exp1_content_summar, aes(x=Half_Decade, y=smean, fill= Half_Decade)) +
     geom_bar(stat="identity", color="black", position=position_dodge()) +
     geom_errorbar(aes(ymin=smean - se, ymax=smean+se), width=.2, position=position_dodge(.9)) +
@@ -261,9 +238,10 @@ Figure2b_final <- Figure2b +
     theme(axis.text.y=element_text(size=SIZE),axis.title.x = element_blank(),
                                  strip.text = element_text(size=SIZE),axis.text.x = element_text(size=9,angle = 90, hjust = 1),
                                  axis.title=element_text(size=SIZE), legend.position =  "none",
-                                 axis.ticks.x = element_blank(),panel.background = element_blank(),
-          axis.line = element_line(colour = "black"))
+                                 axis.ticks.x = element_blank())
 
 
 ggsave("Figure2b_content_exp1.pdf", width=15, height=15, units = c("cm"),
        dpi=300, device = "pdf")
+
+# end

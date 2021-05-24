@@ -1,7 +1,9 @@
-data
+data/*
 figures
 .git
 .RData
 .Rhistory
 .Rproj.user
 .DS_Store
+figure-output/*
+musical-memories.Rproj
